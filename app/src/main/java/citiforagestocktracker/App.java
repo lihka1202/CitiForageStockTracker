@@ -1,4 +1,5 @@
 
+
 package citi;
 
 import java.io.IOException;
@@ -7,16 +8,42 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+import javafx.stage.Stage;
 import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 
-public class App {
+public class App extends Application {
 
   // The URL for the API
   private static final String YAHOO_FINANCE_API =
       "https://finance.yahoo.com/quote/";
 
-  public static void main(String[] args) {
+  public static void main(String[] args) { launch(args); }
+
+  @Override
+  public void start(Stage primaryStage) {
+    primaryStage.setTitle("Dow Jones Industrial Average Stock Price");
+
+    final NumberAxis xAxis = new NumberAxis();
+    final NumberAxis yAxis = new NumberAxis();
+    xAxis.setLabel("Time");
+    yAxis.setLabel("Stock Price");
+
+    LineChart<Number, Number> lineChart = new LineChart<>(xAxis, yAxis);
+    lineChart.setTitle("Dow Jones Industrial Average Stock Price Chart");
+
+    XYChart.Series<Number, Number> series = new XYChart.Series<>();
+    lineChart.getData().add(series);
+
+    Scene scene = new Scene(lineChart, 800, 600);
+    primaryStage.setScene(scene);
+    primaryStage.show();
 
     // Stock symbol for the Dow Jones Industrial Average
     String symbol = "^DJI";
@@ -27,7 +54,6 @@ public class App {
 
     // This is the loop for querying data
     while (true) {
-
       // Try to query the stock information
       try {
         Stock stock = YahooFinance.get(symbol);
@@ -37,18 +63,18 @@ public class App {
         Date timestamp = new Date();
 
         // Add the stockData to the queue, in the form (timestamp, price)
-        ArrayList<Object> stockData = new ArrayList<Object>();
-        stockData.add(timestamp);
+        ArrayList<Object> stockData = new ArrayList<>();
+        stockData.add(timestamp.getTime());
         stockData.add(price);
         stockDataQueue.add(stockData);
 
-        // Print the stockData
-        System.out.println(stockData);
+        // Update the JavaFX chart on the JavaFX application thread
+        Platform.runLater(() -> {
+          series.getData().add(
+              new XYChart.Data<>(timestamp.getTime(), price.doubleValue()));
+        });
 
-      }
-
-      // Catch exception if there is a connection error
-      catch (IOException e) {
+      } catch (IOException e) {
         System.out.println("Failure to connect. Trying again.");
       }
 
